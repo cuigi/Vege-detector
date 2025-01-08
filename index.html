@@ -1,1 +1,168 @@
-apagnan
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détecteur de Repas Végétarien</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        /* Ajout d'un thème sombre */
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4caf50;
+            margin: 20px 0;
+            font-size: 2.5rem;
+        }
+
+        h2 {
+            color: #81c784;
+        }
+
+        #output {
+            margin: 20px auto;
+            padding: 20px;
+            max-width: 600px;
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 1s ease;
+        }
+
+        div {
+            margin-bottom: 20px;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #263238;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            color: #ffffff;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        li:hover {
+            transform: scale(1.05);
+            background-color: #4caf50;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Détecteur de Repas Végétarien</h1>
+    <div id="output"></div>
+
+    <script>
+        // Fonction pour charger le fichier Excel en ligne
+        async function fetchAndProcessFile() {
+            try {
+                // Télécharger le fichier depuis l'URL
+                const response = await fetch('https://cuigi.github.io/vege-detecor/data.xlsx');
+                if (!response.ok) {
+                    throw new Error('Erreur lors du téléchargement du fichier');
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+
+                // Lire le contenu du fichier avec XLSX
+                const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Afficher les données
+                displayData(jsonData);
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('output').innerHTML = '<p>Impossible de charger les données. Vérifiez le fichier ou l’URL.</p>';
+            }
+        }
+
+        function displayData(data) {
+            const output = document.getElementById('output');
+            const weeks = {};
+
+            // Mapping des numéros de jour aux noms des jours de la semaine
+            const daysMap = {
+                1: 'Lundi',
+                2: 'Mardi',
+                3: 'Mercredi',
+                4: 'Jeudi',
+                5: 'Vendredi',
+                6: 'Samedi',
+                7: 'Dimanche'
+            };
+
+            // Commencer à partir de la deuxième ligne pour ignorer l'en-tête
+            data.slice(1).forEach(row => {
+                if (row.length < 2) return; // Sauter les lignes incomplètes
+
+                const week = row[0]?.toString().trim();
+                const dayNumber = parseInt(row[1], 10); // Numéro du jour
+
+                // Vérifier si le jour est valide
+                const day = daysMap[dayNumber];
+                if (!week || !day) return;
+
+                if (!weeks[week]) {
+                    weeks[week] = [];
+                }
+
+                weeks[week].push(day);
+            });
+
+            output.innerHTML = '';
+            if (Object.keys(weeks).length === 0) {
+                output.innerHTML = '<p>Aucun jour trouvé.</p>';
+                return;
+            }
+
+            for (const week in weeks) {
+                const weekDiv = document.createElement('div');
+                weekDiv.innerHTML = `<h2>Semaine ${week}</h2>`;
+
+                const dayList = document.createElement('ul');
+                weeks[week].forEach(day => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = day;
+                    dayList.appendChild(listItem);
+                });
+
+                weekDiv.appendChild(dayList);
+                output.appendChild(weekDiv);
+            }
+        }
+
+        // Appeler la fonction pour charger et traiter le fichier au chargement de la page
+        fetchAndProcessFile();
+    </script>
+</body>
+</html>
