@@ -111,7 +111,7 @@
 
         async function fetchAndProcessFile() {
             try {
-                const response = await fetch('https://cuigi.github.io/vege-detecor/data.xlsx');
+                const response = await fetch('https://cuigi.github.io/Vege-detector/data.xlsx');
                 if (!response.ok) throw new Error('Erreur lors du téléchargement du fichier');
                 const arrayBuffer = await response.arrayBuffer();
                 const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
