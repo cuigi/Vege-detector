@@ -1,1 +1,62 @@
-apagnan
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détecteur de Repas Végétarien</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h1>Détecteur de Repas Végétarien</h1>
+    <input type="file" id="fileInput" />
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', handleFile, false);
+
+        function handleFile(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                displayData(jsonData);
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function displayData(data) {
+            const output = document.getElementById('output');
+            const weeks = {};
+
+            data.forEach((row, index) => {
+                if (index === 0) return; // Skip header row
+                const week = row[0];
+                const day = row[1];
+                const isVegetarian = row[2];
+
+                if (!weeks[week]) {
+                    weeks[week] = [];
+                }
+
+                if (isVegetarian.toLowerCase() === 'oui') {
+                    weeks[week].push(day);
+                }
+            });
+
+            output.innerHTML = '';
+            for (const week in weeks) {
+                const weekDiv = document.createElement('div');
+                weekDiv.innerHTML = `<h2>Semaine ${week}</h2><p>Jours végétariens: ${weeks[week].join(', ')}</p>`;
+                output.appendChild(weekDiv);
+            }
+        }
+    </script>
+</body>
+</html>
