@@ -8,55 +8,82 @@
 </head>
 <body>
     <h1>Détecteur de Repas Végétarien</h1>
-    <input type="file" id="fileInput" />
     <div id="output"></div>
 
     <script>
-        document.getElementById('fileInput').addEventListener('change', handleFile, false);
+        // Fonction pour charger le fichier Excel en ligne
+        async function fetchAndProcessFile() {
+            try {
+                // Télécharger le fichier depuis l'URL
+                const response = await fetch('https://cuigi.github.io/vege-detecor/data.xlsx');
+                if (!response.ok) {
+                    throw new Error('Erreur lors du téléchargement du fichier');
+                }
 
-        function handleFile(e) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
+                const arrayBuffer = await response.arrayBuffer();
 
-            reader.onload = function(event) {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
+                // Lire le contenu du fichier avec XLSX
+                const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
+                // Afficher les données
                 displayData(jsonData);
-            };
-
-            reader.readAsArrayBuffer(file);
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('output').innerHTML = '<p>Impossible de charger les données. Vérifiez le fichier ou l’URL.</p>';
+            }
         }
 
         function displayData(data) {
             const output = document.getElementById('output');
             const weeks = {};
 
-            data.forEach((row, index) => {
-                if (index === 0) return; // Skip header row
-                const week = row[0];
-                const day = row[1];
-                const isVegetarian = row[2];
+            // Mapping des numéros de jour aux noms des jours de la semaine
+            const daysMap = {
+                1: 'Lundi',
+                2: 'Mardi',
+                3: 'Mercredi',
+                4: 'Jeudi',
+                5: 'Vendredi',
+                6: 'Samedi',
+                7: 'Dimanche'
+            };
+
+            // Commencer à partir de la deuxième ligne pour ignorer l'en-tête
+            data.slice(1).forEach(row => {
+                if (row.length < 2) return; // Sauter les lignes incomplètes
+
+                const week = row[0]?.toString().trim();
+                const dayNumber = parseInt(row[1], 10); // Numéro du jour
+
+                // Vérifier si le jour est valide
+                const day = daysMap[dayNumber];
+                if (!week || !day) return;
 
                 if (!weeks[week]) {
                     weeks[week] = [];
                 }
 
-                if (isVegetarian.toLowerCase() === 'oui') {
-                    weeks[week].push(day);
-                }
+                weeks[week].push(day);
             });
 
             output.innerHTML = '';
+            if (Object.keys(weeks).length === 0) {
+                output.innerHTML = '<p>Aucun jour trouvé.</p>';
+                return;
+            }
+
             for (const week in weeks) {
                 const weekDiv = document.createElement('div');
-                weekDiv.innerHTML = `<h2>Semaine ${week}</h2><p>Jours végétariens: ${weeks[week].join(', ')}</p>`;
+                weekDiv.innerHTML = `<h2>Semaine ${week}</h2><p>Jours: ${weeks[week].join(', ')}</p>`;
                 output.appendChild(weekDiv);
             }
         }
+
+        // Appeler la fonction pour charger et traiter le fichier au chargement de la page
+        fetchAndProcessFile();
     </script>
 </body>
 </html>
